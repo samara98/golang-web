@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net/http"
+	"path"
+	"text/template"
 )
 
 func main() {
@@ -36,9 +37,26 @@ func main() {
 }
 
 func handlerIndex(w http.ResponseWriter, r *http.Request) {
-	var message = "Welcome"
-	// w.Write([]byte(message))
-	io.WriteString(w, message)
+	// var message = "Welcome"
+	// // w.Write([]byte(message))
+	// io.WriteString(w, message)
+
+	var filepath = path.Join("views", "index.html")
+	var tmpl, err = template.ParseFiles(filepath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var data = map[string]interface{}{
+		"title": "Learning Golang Web",
+		"name":  "Batman",
+	}
+
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func handlerHello(w http.ResponseWriter, r *http.Request) {
