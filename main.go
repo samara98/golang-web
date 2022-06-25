@@ -10,6 +10,22 @@ type M map[string]interface{}
 
 var tmpl *template.Template
 
+type Info struct {
+	Affiliation string
+	Address     string
+}
+
+func (t Info) GetAffiliationDetailInfo() string {
+	return "have 31 divisions"
+}
+
+type Person struct {
+	Name    string
+	Gender  string
+	Hobbies []string
+	Info    Info
+}
+
 func init() {
 	tmpl = template.Must(template.ParseGlob("views/*.html"))
 
@@ -66,6 +82,18 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	// if err != nil {
 	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
 	// }
+
+	var person = Person{
+		Name:    "Bruce Wayne",
+		Gender:  "male",
+		Hobbies: []string{"Reading Books", "Traveling", "Buying things"},
+		Info:    Info{"Wayne Enterprises", "Gotham City"},
+	}
+
+	err := tmpl.ExecuteTemplate(w, "view", person)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func handlerIndex(w http.ResponseWriter, r *http.Request) {
