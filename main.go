@@ -10,6 +10,9 @@ func main() {
 	http.HandleFunc("/", handlerIndex)
 	http.HandleFunc("/index", handlerIndex)
 	http.HandleFunc("/hello", handlerHello)
+	http.HandleFunc("/data", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("hello again"))
+	})
 
 	var address = ":8080"
 	fmt.Printf("server started at %s\n", address)
