@@ -26,6 +26,16 @@ type Person struct {
 	Info    Info
 }
 
+type Superhero struct {
+	Name    string
+	Alias   string
+	Friends []string
+}
+
+func (s Superhero) SayHello(from string, message string) string {
+	return fmt.Sprintf("%s said: \"%s\"", from, message)
+}
+
 func init() {
 	tmpl = template.Must(template.ParseGlob("views/*.html"))
 
@@ -41,6 +51,7 @@ func main() {
 		w.Write([]byte("hello again"))
 	})
 	http.HandleFunc("/about", handlerAbout)
+	http.HandleFunc("/hero", handlerHero)
 
 	var address = ":8080"
 	fmt.Printf("server started at %s\n", address)
@@ -113,6 +124,18 @@ func handlerHello(w http.ResponseWriter, r *http.Request) {
 func handlerAbout(w http.ResponseWriter, r *http.Request) {
 	var data = M{"name": "Batman"}
 	err := tmpl.ExecuteTemplate(w, "about", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func handlerHero(w http.ResponseWriter, r *http.Request) {
+	var person = Superhero{
+		Name:    "Bruce Wayne",
+		Alias:   "Batman",
+		Friends: []string{"Superman", "Flash", "Green Lantern"},
+	}
+	err := tmpl.ExecuteTemplate(w, "view-hero", person)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
