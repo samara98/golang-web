@@ -3,19 +3,28 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"path"
 	"text/template"
 )
+
+type M map[string]interface{}
+
+var tmpl *template.Template
+
+func init() {
+	tmpl = template.Must(template.ParseGlob("views/*.html"))
+
+}
 
 func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("assets"))))
 
-	http.HandleFunc("/", handlerIndex)
+	http.HandleFunc("/", handlerRoot)
 	http.HandleFunc("/index", handlerIndex)
 	http.HandleFunc("/hello", handlerHello)
 	http.HandleFunc("/data", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("hello again"))
 	})
+	http.HandleFunc("/about", handlerAbout)
 
 	var address = ":8080"
 	fmt.Printf("server started at %s\n", address)
@@ -36,24 +45,32 @@ func main() {
 	}
 }
 
-func handlerIndex(w http.ResponseWriter, r *http.Request) {
+func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	// var message = "Welcome"
 	// // w.Write([]byte(message))
 	// io.WriteString(w, message)
 
-	var filepath = path.Join("views", "index.html")
-	var tmpl, err = template.ParseFiles(filepath)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// var filepath = path.Join("views", "index.html")
+	// var tmpl, err = template.ParseFiles(filepath)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
 
-	var data = map[string]interface{}{
-		"title": "Learning Golang Web",
-		"name":  "Batman",
-	}
+	// var data = map[string]interface{}{
+	// 	"title": "Learning Golang Web",
+	// 	"name":  "Batman",
+	// }
 
-	err = tmpl.Execute(w, data)
+	// err = tmpl.Execute(w, data)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// }
+}
+
+func handlerIndex(w http.ResponseWriter, r *http.Request) {
+	var data = M{"name": "Batman"}
+	err := tmpl.ExecuteTemplate(w, "index", data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -63,4 +80,12 @@ func handlerHello(w http.ResponseWriter, r *http.Request) {
 	var message = "Hello world!"
 	// w.Write([]byte(message))
 	fmt.Fprint(w, message)
+}
+
+func handlerAbout(w http.ResponseWriter, r *http.Request) {
+	var data = M{"name": "Batman"}
+	err := tmpl.ExecuteTemplate(w, "about", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
