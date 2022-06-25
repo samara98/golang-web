@@ -7,6 +7,8 @@ import (
 )
 
 func main() {
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("assets"))))
+
 	http.HandleFunc("/", handlerIndex)
 	http.HandleFunc("/index", handlerIndex)
 	http.HandleFunc("/hello", handlerHello)
