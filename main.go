@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 type M map[string]interface{}
@@ -56,8 +59,7 @@ func init() {
 func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("assets"))))
 
-	// http.HandleFunc("/", handlerRoot)
-	http.HandleFunc("/", routeIndexGet)
+	http.HandleFunc("/", handlerRoot)
 	http.HandleFunc("/index", handlerIndex)
 	http.HandleFunc("/hello", handlerHello)
 	http.HandleFunc("/data", func(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +68,10 @@ func main() {
 	http.HandleFunc("/about", handlerAbout)
 	http.HandleFunc("/hero", handlerHero)
 	http.HandleFunc("/custfunc", handlerCustFunc)
+	http.HandleFunc("/form", routeIndexGet)
 	http.HandleFunc("/process", routeSubmitPost)
+	http.HandleFunc("/form-file", routeIndexGetFile)
+	http.HandleFunc("/process-file", routeSubmitPostFile)
 
 	var address = ":8080"
 	fmt.Printf("server started at %s\n", address)
@@ -87,48 +92,48 @@ func main() {
 	}
 }
 
-// func handlerRoot(w http.ResponseWriter, r *http.Request) {
-// 	// var message = "Welcome"
-// 	// // w.Write([]byte(message))
-// 	// io.WriteString(w, message)
+func handlerRoot(w http.ResponseWriter, r *http.Request) {
+	// var message = "Welcome"
+	// // w.Write([]byte(message))
+	// io.WriteString(w, message)
 
-// 	// var filepath = path.Join("views", "index.html")
-// 	// var tmpl, err = template.ParseFiles(filepath)
-// 	// if err != nil {
-// 	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-// 	// 	return
-// 	// }
+	// var filepath = path.Join("views", "index.html")
+	// var tmpl, err = template.ParseFiles(filepath)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
 
-// 	// var data = map[string]interface{}{
-// 	// 	"title": "Learning Golang Web",
-// 	// 	"name":  "Batman",
-// 	// }
+	// var data = map[string]interface{}{
+	// 	"title": "Learning Golang Web",
+	// 	"name":  "Batman",
+	// }
 
-// 	// err = tmpl.Execute(w, data)
-// 	// if err != nil {
-// 	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-// 	// }
+	// err = tmpl.Execute(w, data)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// }
 
-// 	switch r.Method {
-// 	case "POST":
-// 		fmt.Fprint(w, "POST")
-// 	case "GET":
-// 		var person = Person{
-// 			Name:    "Bruce Wayne",
-// 			Gender:  "male",
-// 			Hobbies: []string{"Reading Books", "Traveling", "Buying things"},
-// 			Info:    Info{"Wayne Enterprises", "Gotham City"},
-// 		}
+	switch r.Method {
+	case "POST":
+		fmt.Fprint(w, "POST")
+	case "GET":
+		var person = Person{
+			Name:    "Bruce Wayne",
+			Gender:  "male",
+			Hobbies: []string{"Reading Books", "Traveling", "Buying things"},
+			Info:    Info{"Wayne Enterprises", "Gotham City"},
+		}
 
-// 		err := tmpl.ExecuteTemplate(w, "view", person)
-// 		if err != nil {
-// 			http.Error(w, err.Error(), http.StatusInternalServerError)
-// 		}
-// 	default:
-// 		http.Error(w, "", http.StatusBadRequest)
-// 	}
+		err := tmpl.ExecuteTemplate(w, "view", person)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "", http.StatusBadRequest)
+	}
 
-// }
+}
 
 func handlerIndex(w http.ResponseWriter, r *http.Request) {
 	var data = M{"name": "Batman"}
@@ -206,4 +211,67 @@ func routeSubmitPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "", http.StatusBadRequest)
+}
+
+func routeIndexGetFile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+
+	var tmpl = template.Must(template.New("form-file").ParseFiles("views/view.html"))
+	var err = tmpl.Execute(w, nil)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func routeSubmitPostFile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseMultipartForm(1024); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// ...
+	alias := r.FormValue("alias")
+
+	uploadedFile, handler, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer uploadedFile.Close()
+
+	dir, err := os.Getwd()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// ...
+	filename := handler.Filename
+	if alias != "" {
+		filename = fmt.Sprintf("%s%s", alias, filepath.Ext(handler.Filename))
+	}
+
+	fileLocation := filepath.Join(dir, "files", filename)
+	targetFile, err := os.OpenFile(fileLocation, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer targetFile.Close()
+
+	if _, err := io.Copy(targetFile, uploadedFile); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write([]byte("done"))
 }
