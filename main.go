@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
-	"text/template"
 )
 
 type M map[string]interface{}
@@ -36,9 +36,21 @@ func (s Superhero) SayHello(from string, message string) string {
 	return fmt.Sprintf("%s said: \"%s\"", from, message)
 }
 
-func init() {
-	tmpl = template.Must(template.ParseGlob("views/*.html"))
+var funcMap = template.FuncMap{
+	"unescape": func(s string) template.HTML {
+		return template.HTML(s)
+	},
+	"avg": func(n ...int) int {
+		var total = 0
+		for _, each := range n {
+			total += each
+		}
+		return total / len(n)
+	},
+}
 
+func init() {
+	tmpl = template.Must(template.New("").Funcs(funcMap).ParseGlob("views/*.html"))
 }
 
 func main() {
@@ -52,6 +64,7 @@ func main() {
 	})
 	http.HandleFunc("/about", handlerAbout)
 	http.HandleFunc("/hero", handlerHero)
+	http.HandleFunc("/custfunc", handlerCustFunc)
 
 	var address = ":8080"
 	fmt.Printf("server started at %s\n", address)
@@ -136,6 +149,13 @@ func handlerHero(w http.ResponseWriter, r *http.Request) {
 		Friends: []string{"Superman", "Flash", "Green Lantern"},
 	}
 	err := tmpl.ExecuteTemplate(w, "view-hero", person)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func handlerCustFunc(w http.ResponseWriter, r *http.Request) {
+	err := tmpl.Funcs(funcMap).ExecuteTemplate(w, "view-func", "")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
