@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -72,6 +73,8 @@ func main() {
 	http.HandleFunc("/process", routeSubmitPost)
 	http.HandleFunc("/form-file", routeIndexGetFile)
 	http.HandleFunc("/process-file", routeSubmitPostFile)
+	http.HandleFunc("/ajax", handleAjax)
+	http.HandleFunc("/save", handleSave)
 
 	var address = ":8080"
 	fmt.Printf("server started at %s\n", address)
@@ -274,4 +277,39 @@ func routeSubmitPostFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("done"))
+}
+
+func handleAjax(w http.ResponseWriter, r *http.Request) {
+	tmpl := template.Must(template.ParseFiles("views/view-ajax.html"))
+	err := tmpl.Execute(w, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func handleSave(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		decoder := json.NewDecoder(r.Body)
+		payload := struct {
+			Name   string `json:"name"`
+			Age    int    `json:"age"`
+			Gender string `json:"gender"`
+		}{}
+		err := decoder.Decode(&payload)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		message := fmt.Sprintf(
+			"Hllo, my name is %s. I'm %d years old %s",
+			payload.Name,
+			payload.Age,
+			payload.Gender,
+		)
+		fmt.Fprint(w, message)
+		return
+	}
+
+	http.Error(w, "Only accept POST request", http.StatusBadRequest)
 }
