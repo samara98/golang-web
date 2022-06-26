@@ -75,6 +75,7 @@ func main() {
 	http.HandleFunc("/process-file", routeSubmitPostFile)
 	http.HandleFunc("/ajax", handleAjax)
 	http.HandleFunc("/save", handleSave)
+	http.HandleFunc("/getjson", actionIndex)
 
 	var address = ":8080"
 	fmt.Printf("server started at %s\n", address)
@@ -312,4 +313,33 @@ func handleSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "Only accept POST request", http.StatusBadRequest)
+}
+
+func actionIndex(w http.ResponseWriter, r *http.Request) {
+	data := []struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}{
+		{"Richard Grayson", 24},
+		{"Jason Todd", 23},
+		{"Tim Drake", 22},
+		{"Damian Wayne", 21},
+	}
+
+	// jsonInBytes, err := json.Marshal(data)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+
+	// w.Header().Set("Content-Type", "application/json")
+	// fmt.Fprint(w, string(jsonInBytes))
+	// // w.Write(jsonInBytes)
+
+	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
