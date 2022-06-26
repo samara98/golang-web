@@ -107,17 +107,25 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
 	// }
 
-	var person = Person{
-		Name:    "Bruce Wayne",
-		Gender:  "male",
-		Hobbies: []string{"Reading Books", "Traveling", "Buying things"},
-		Info:    Info{"Wayne Enterprises", "Gotham City"},
+	switch r.Method {
+	case "POST":
+		fmt.Fprint(w, "POST")
+	case "GET":
+		var person = Person{
+			Name:    "Bruce Wayne",
+			Gender:  "male",
+			Hobbies: []string{"Reading Books", "Traveling", "Buying things"},
+			Info:    Info{"Wayne Enterprises", "Gotham City"},
+		}
+
+		err := tmpl.ExecuteTemplate(w, "view", person)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "", http.StatusBadRequest)
 	}
 
-	err := tmpl.ExecuteTemplate(w, "view", person)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
 }
 
 func handlerIndex(w http.ResponseWriter, r *http.Request) {
