@@ -56,7 +56,8 @@ func init() {
 func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("assets"))))
 
-	http.HandleFunc("/", handlerRoot)
+	// http.HandleFunc("/", handlerRoot)
+	http.HandleFunc("/", routeIndexGet)
 	http.HandleFunc("/index", handlerIndex)
 	http.HandleFunc("/hello", handlerHello)
 	http.HandleFunc("/data", func(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +66,7 @@ func main() {
 	http.HandleFunc("/about", handlerAbout)
 	http.HandleFunc("/hero", handlerHero)
 	http.HandleFunc("/custfunc", handlerCustFunc)
+	http.HandleFunc("/process", routeSubmitPost)
 
 	var address = ":8080"
 	fmt.Printf("server started at %s\n", address)
@@ -85,48 +87,48 @@ func main() {
 	}
 }
 
-func handlerRoot(w http.ResponseWriter, r *http.Request) {
-	// var message = "Welcome"
-	// // w.Write([]byte(message))
-	// io.WriteString(w, message)
+// func handlerRoot(w http.ResponseWriter, r *http.Request) {
+// 	// var message = "Welcome"
+// 	// // w.Write([]byte(message))
+// 	// io.WriteString(w, message)
 
-	// var filepath = path.Join("views", "index.html")
-	// var tmpl, err = template.ParseFiles(filepath)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
+// 	// var filepath = path.Join("views", "index.html")
+// 	// var tmpl, err = template.ParseFiles(filepath)
+// 	// if err != nil {
+// 	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+// 	// 	return
+// 	// }
 
-	// var data = map[string]interface{}{
-	// 	"title": "Learning Golang Web",
-	// 	"name":  "Batman",
-	// }
+// 	// var data = map[string]interface{}{
+// 	// 	"title": "Learning Golang Web",
+// 	// 	"name":  "Batman",
+// 	// }
 
-	// err = tmpl.Execute(w, data)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// }
+// 	// err = tmpl.Execute(w, data)
+// 	// if err != nil {
+// 	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+// 	// }
 
-	switch r.Method {
-	case "POST":
-		fmt.Fprint(w, "POST")
-	case "GET":
-		var person = Person{
-			Name:    "Bruce Wayne",
-			Gender:  "male",
-			Hobbies: []string{"Reading Books", "Traveling", "Buying things"},
-			Info:    Info{"Wayne Enterprises", "Gotham City"},
-		}
+// 	switch r.Method {
+// 	case "POST":
+// 		fmt.Fprint(w, "POST")
+// 	case "GET":
+// 		var person = Person{
+// 			Name:    "Bruce Wayne",
+// 			Gender:  "male",
+// 			Hobbies: []string{"Reading Books", "Traveling", "Buying things"},
+// 			Info:    Info{"Wayne Enterprises", "Gotham City"},
+// 		}
 
-		err := tmpl.ExecuteTemplate(w, "view", person)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	default:
-		http.Error(w, "", http.StatusBadRequest)
-	}
+// 		err := tmpl.ExecuteTemplate(w, "view", person)
+// 		if err != nil {
+// 			http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		}
+// 	default:
+// 		http.Error(w, "", http.StatusBadRequest)
+// 	}
 
-}
+// }
 
 func handlerIndex(w http.ResponseWriter, r *http.Request) {
 	var data = M{"name": "Batman"}
@@ -167,4 +169,41 @@ func handlerCustFunc(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func routeIndexGet(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		var tmpl = template.Must(template.New("form").ParseFiles("views/view.html"))
+		var err = tmpl.Execute(w, nil)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	http.Error(w, "", http.StatusBadRequest)
+}
+
+func routeSubmitPost(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		var tmpl = template.Must(template.New("result").ParseFiles("views/view.html"))
+
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		var name = r.FormValue("name")
+		var message = r.Form.Get("message")
+
+		var data = map[string]string{"name": name, "message": message}
+
+		if err := tmpl.Execute(w, data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	http.Error(w, "", http.StatusBadRequest)
 }
