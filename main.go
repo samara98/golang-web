@@ -76,6 +76,8 @@ func main() {
 	http.HandleFunc("/ajax", handleAjax)
 	http.HandleFunc("/save", handleSave)
 	http.HandleFunc("/getjson", actionIndex)
+	http.HandleFunc("/multifile", handleMultifile)
+	http.HandleFunc("/upload", handleUpload)
 
 	var address = ":8080"
 	fmt.Printf("server started at %s\n", address)
@@ -342,4 +344,51 @@ func actionIndex(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func handleMultifile(w http.ResponseWriter, r *http.Request) {
+	tmpl := template.Must(template.ParseFiles("views/view-multifile.html"))
+	err := tmpl.Execute(w, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func handleUpload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Only accept POST request", http.StatusBadRequest)
+		return
+	}
+
+	basePath, _ := os.Getwd()
+	reader, err := r.MultipartReader()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// ...
+	for {
+		part, err := reader.NextPart()
+		if err == io.EOF {
+			break
+		}
+
+		fileLocation := filepath.Join(basePath, "files", part.FileName())
+		dst, err := os.Create(fileLocation)
+		if dst != nil {
+			defer dst.Close()
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if _, err := io.Copy(dst, part); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Write([]byte(`all files uploaded`))
 }
